@@ -1,0 +1,86 @@
+<apex:page>
+<h1>Click on search bar...</h1>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script>
+(function() {
+    'use strict';
+    if (! ('webkitSpeechRecognition' in window) ) return;
+    var talkMsg = 'Speak now';
+    var patience = 6;
+    function capitalize(str) {
+        return str.length ? str[0].toUpperCase() + str.slice(1) : str;
+    }
+    var speechInputWrappers = document.getElementsByClassName('searchBoxClearContainer');
+    //It works for only text box which is located in 'searchBoxClearContainer'
+    [].forEach.call(speechInputWrappers, function(speechInputWrapper) { 
+ 
+        //Getting text from phSearchInput textbox
+        var inputEl = document.getElementById('phSearchInput');
+ 
+        //Handle click event on inputBox
+        var micBtn = document.getElementById('phSearchInput');
+ 
+        var inputHeight = inputEl.offsetHeight;
+        var inputRightBorder = parseInt(getComputedStyle(inputEl).borderRightWidth, 10);
+        var buttonSize = 0.8 * inputHeight;
+        var finalTranscript = '';
+        var recognizing = false;
+        var timeout;
+        var oldPlaceholder = null;
+        var recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+ 
+        function restartTimer() {
+            timeout = setTimeout(function() {
+                recognition.stop();
+            }, patience * 500);
+        }
+ 
+        //Changing the placeholder text inside textbox
+        recognition.onstart = function() {
+            oldPlaceholder = inputEl.placeholder;
+            inputEl.placeholder = talkMsg;
+            recognizing = true;
+            micBtn.classList.add('listening');
+            restartTimer();
+        };
+ 
+        //When someone stop to speaking, it will run
+        recognition.onend = function() {
+            //Checking for is textbox contains ant string or not
+            if( document.getElementById('phSearchInput').value != '' ){
+                //It click the default search button
+                document.getElementById('phSearchButton').click();
+            }
+            recognizing = false;
+            clearTimeout(timeout);
+            micBtn.classList.remove('listening');
+            if (oldPlaceholder !== null) inputEl.placeholder = oldPlaceholder;
+        };
+ 
+        recognition.onresult = function(event) {
+            clearTimeout(timeout);
+            for (var i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
+            }
+            finalTranscript = capitalize(finalTranscript);
+            inputEl.value = finalTranscript;
+            restartTimer();
+        };
+ 
+        //Handling click event on Textbox -  we can make it for button as well but right now we have no mic button as google have so i am giving this event on textbox
+        micBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            if (recognizing) {
+                recognition.stop();
+                return;
+            }
+            inputEl.value = finalTranscript = '';
+            recognition.start();
+        }, false);
+    });
+})();
+</script>
+</apex:page>
